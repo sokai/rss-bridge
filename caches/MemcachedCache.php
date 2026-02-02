@@ -22,6 +22,8 @@ class MemcachedCache implements CacheInterface
 
     public function get(string $key, $default = null)
     {
+        $key = $this->createCacheKey($key);
+
         $value = $this->conn->get($key);
         if ($value === false) {
             return $default;
@@ -31,6 +33,8 @@ class MemcachedCache implements CacheInterface
 
     public function set(string $key, $value, $ttl = null): void
     {
+        $key = $this->createCacheKey($key);
+
         if ($ttl === 0) {
             return; // TTL is 0, do nothing
         }
@@ -51,6 +55,8 @@ class MemcachedCache implements CacheInterface
 
     public function delete(string $key): void
     {
+        $key = $this->createCacheKey($key);
+
         $this->conn->delete($key);
     }
 
@@ -62,5 +68,15 @@ class MemcachedCache implements CacheInterface
     public function prune(): void
     {
         // memcached manages pruning on its own
+    }
+
+    private function createCacheKey($key)
+    {
+        $prefix = 'http_';
+        $request = json_decode(trim($key, $prefix), true);
+        if (is_array($request)) {
+            $key =  $prefix . hash('sha512', json_encode($request));
+        }
+        return $key;
     }
 }
